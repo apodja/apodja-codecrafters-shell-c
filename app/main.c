@@ -2,14 +2,25 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <unistd.h>
+#include <sys/stat.h>
+
+typedef struct {
+  char** path_list;
+  int path_list_len;
+} PathList;
 
 void do_echo(char* input);
 bool isBuiltIn(char* cmd);
 char* get_nth_arg(char* input, int n);
+PathList* parse_path(char* path);
+void free_pl(PathList* pl);
+void print_list(PathList* pl);
+char* file_exists(PathList* pl, char* cmd);
 
 int main() {
-
   char input[100];
+  PathList* pl = parse_path(getenv("PATH"));
 
   while (1)
   {
@@ -25,18 +36,33 @@ int main() {
       
     } else if (strncmp(input, "type", 4) == 0) {
       char* cmdType = get_nth_arg(input, 2);
-      if (isBuiltIn(cmdType))
+      if (cmdType != NULL)
       {
-        printf("%s is a shell builtin\n", cmdType);
+        if (isBuiltIn(cmdType))
+        {
+          printf("%s is a shell builtin\n", cmdType);
+        } else if(pl != NULL) {
+          char* fpath = file_exists(pl, cmdType);
+          if (fpath != NULL)
+          {
+            printf("%s is %s\n", cmdType, fpath);
+            free(fpath);
+          } else {
+            printf("%s: not found\n", cmdType);
+          }
+        }
+        else {
+          printf("%s: not found\n", cmdType);
+        }
       } else {
-        printf("%s: not found\n", cmdType);
+        printf("Command type expects an argument\n");
       }
-      
     }  else {
       printf("%s: command not found\n", input);
     }
     fflush(stdout);
   }
+  free_pl(pl);
     
   return 0;
 }
@@ -70,7 +96,6 @@ char* get_nth_arg(char* input, int n) {
   {
     if (n == 1)
     {
-
       ret = strdup(token);
       free(input_cpy);
       return ret;
@@ -92,3 +117,72 @@ char* get_nth_arg(char* input, int n) {
   return NULL;
 }
 
+PathList* parse_path(char* path) {
+  PathList* pl = malloc(sizeof(PathList));
+  pl->path_list = malloc(10 * sizeof(char*));
+  pl->path_list_len = 0;
+
+  char* start = path;
+  char* next;
+  int i = 0 , j = 0;
+  int path_len = strlen(path);
+
+  while (i < path_len)
+  {
+    if (path[i] == ':')
+    {
+      next = &(path[i+1]);
+      path[i] = '\0';
+      pl->path_list[j] = malloc(strlen(start) + 1);
+      strcpy(pl->path_list[j++], start); 
+      start = next;
+    }
+    i++;
+  }
+  pl->path_list[j] = malloc(strlen(start) + 1);
+  strcpy(pl->path_list[j++], start);
+  pl->path_list_len = j;
+
+  return pl;
+}
+
+void print_list(PathList* pl) {
+  printf("(%d) : [", pl->path_list_len);
+  if (pl->path_list_len > 0)
+  {
+    for (int i = 0; i < pl->path_list_len; i++)
+    {
+      printf("%s, ", pl->path_list[i]);
+    }
+  } 
+  printf("]\n");
+  
+}
+
+void free_pl(PathList* pl) {
+  if (pl->path_list_len > 0)
+  {
+    for (int i = 0; i < pl->path_list_len; i++)
+    {
+      free(pl->path_list[i]);
+    }
+  } 
+  free(pl);
+}
+
+char* file_exists(PathList* pl, char* cmd) {
+  char temp[50];
+  // print_list(pl);
+
+
+  for (int i = 0; i < pl->path_list_len; i++)
+  {
+    sprintf(temp, "%s/%s", pl->path_list[i], cmd);
+    if (access(temp, F_OK) == 0)
+    {
+      return strdup(temp);
+    }
+  }
+
+  return NULL;
+}
