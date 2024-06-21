@@ -57,8 +57,14 @@ int main() {
       } else {
         printf("Command type expects an argument\n");
       }
-    }  else {
-      printf("%s: command not found\n", input);
+    } else {
+      char* cmdType = get_nth_arg(input, 1);
+      if (file_exists(pl, cmdType) != NULL)
+      {
+        system(input);
+      } else {
+        printf("%s: not found\n", cmdType);
+      }
     }
     fflush(stdout);
   }
@@ -171,9 +177,8 @@ void free_pl(PathList* pl) {
 }
 
 char* file_exists(PathList* pl, char* cmd) {
+  if (cmd == NULL) return NULL;
   char temp[50];
-  // print_list(pl);
-
 
   for (int i = 0; i < pl->path_list_len; i++)
   {
