@@ -17,6 +17,7 @@ PathList* parse_path(char* path);
 void free_pl(PathList* pl);
 void print_list(PathList* pl);
 char* file_exists(PathList* pl, char* cmd);
+void print_pwd();
 
 int main() {
   char input[100];
@@ -34,6 +35,8 @@ int main() {
     } else if (strncmp(input, "echo", 4) == 0) {
       do_echo(input);
       
+    } else if (strncmp(input, "pwd", 3) == 0) {
+      print_pwd();
     } else if (strncmp(input, "type", 4) == 0) {
       char* cmdType = get_nth_arg(input, 2);
       if (cmdType != NULL)
@@ -79,9 +82,9 @@ void do_echo(char* input) {
 }
 
 bool isBuiltIn(char* cmd) {
-  char* builtInCmds[] = {"echo", "exit", "type"};
+  char* builtInCmds[] = {"echo", "exit", "type", "pwd"};
 
-  for(int i = 0; i < 3; i++) {
+  for(int i = 0; i < 4; i++) {
     if (strcmp(builtInCmds[i], cmd) == 0)
     {
       return true;
@@ -190,4 +193,10 @@ char* file_exists(PathList* pl, char* cmd) {
   }
 
   return NULL;
+}
+
+void print_pwd() {
+  char temp[128];
+  getcwd(temp, 128);
+  printf("%s\n", temp);
 }
