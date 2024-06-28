@@ -36,16 +36,21 @@ int main() {
       do_echo(input);
       
     } else if (strncmp(input, "cd", 2) == 0) {
-      char* dir = get_nth_arg(input, 2);
-      if (dir)
+      char* dir;
+      char* retDir = get_nth_arg(input, 2);
+      dir = retDir;
+      if (strncmp(retDir, "~", 1) == 0)
       {
-        int status = chdir(dir);
-        if (status == -1)
-        {
-          printf("cd: %s: No such file or directory\n", dir);
-        }
+        dir = getenv("HOME");
+        strcat(dir, retDir + 1);
       }
-    }else if (strncmp(input, "pwd", 3) == 0) {
+      int status = chdir(dir);
+      if (status == -1)
+      {
+        printf("cd: %s: No such file or directory\n", dir);
+      }
+      free(retDir);
+    } else if (strncmp(input, "pwd", 3) == 0) {
       char* pwd = get_pwd();
       printf("%s\n", pwd);
       free(pwd);
@@ -72,14 +77,18 @@ int main() {
       } else {
         printf("Command type expects an argument\n");
       }
+      free(cmdType);
     } else {
       char* cmdType = get_nth_arg(input, 1);
-      if (file_exists(pl, cmdType) != NULL)
+      char* cmdPath = file_exists(pl, cmdType);
+      if (cmdPath != NULL)
       {
         system(input);
+        free(cmdPath);
       } else {
         printf("%s: not found\n", cmdType);
       }
+      free(cmdType);
     }
     fflush(stdout);
   }
@@ -140,7 +149,7 @@ char* get_nth_arg(char* input, int n) {
 
 PathList* parse_path(char* path) {
   PathList* pl = malloc(sizeof(PathList));
-  pl->path_list = malloc(10 * sizeof(char*));
+  pl->path_list = malloc(60 * sizeof(char*));
   pl->path_list_len = 0;
 
   char* start = path;
@@ -193,8 +202,8 @@ void free_pl(PathList* pl) {
 
 char* file_exists(PathList* pl, char* cmd) {
   if (cmd == NULL) return NULL;
-  char temp[50];
-
+  char temp[100];
+  
   for (int i = 0; i < pl->path_list_len; i++)
   {
     sprintf(temp, "%s/%s", pl->path_list[i], cmd);
